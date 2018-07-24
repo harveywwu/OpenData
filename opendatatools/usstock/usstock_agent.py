@@ -3,7 +3,7 @@
 from opendatatools.common import RestAgent
 import pandas as pd
 import io
-import datetime
+import datetime, time
 
 class USStockAgent(RestAgent):
     def __init__(self):
@@ -40,13 +40,16 @@ class USStockAgent(RestAgent):
 
         return pd.concat([df_nasdaq, df_nyse, df_amex]), ''
 
-    def _get_data(self, symbol, events):
-
+    def _get_data(self, symbol, events, start_date = None, end_date = None):
+        if end_date == None:
+            end_date = datetime.date.today()
+        if start_date == None:
+            start_date = end_date - datetime.timedelta(days = 365)
         url_cookies = 'https://finance.yahoo.com/quote/%s/history?p=%s' % (symbol, symbol)
         cookies, crumb = self.prepare_cookies(url_cookies)
-
-        now = datetime.datetime.now().timestamp()
-        url = 'https://query1.finance.yahoo.com/v7/finance/download/%s?period1=%d&period2=%d&interval=1d&events=%s&crumb=%s' % (symbol, 0, int(now), events, crumb)
+        start_period = time.mktime(start_date.timetuple())
+        end_period = time.mktime(end_date.timetuple())
+        url = 'https://query1.finance.yahoo.com/v7/finance/download/%s?period1=%d&period2=%d&interval=1d&events=%s&crumb=%s' % (symbol, int(start_period), int(end_period), events, crumb)
         self.add_headers({'referer' : url_cookies})
         response = self.do_request(url, None, method='GET', type='binary', cookies=cookies)
         if response is not None:
@@ -54,11 +57,11 @@ class USStockAgent(RestAgent):
             return df, ''
         return None, '获取数据失败'
 
-    def get_daily(self, symbol):
-        return self._get_data(symbol, 'history')
+    def get_daily(self, symbol, start_date = None, end_date = None):
+        return self._get_data(symbol, 'history', start_date = start_date, end_date = end_date)
 
-    def get_dividend(self, symbol):
-        return self._get_data(symbol, 'div')
+    def get_dividend(self, symbol, start_date = None, end_date = None):
+        return self._get_data(symbol, 'div', start_date = start_date, end_date = end_date)
 
-    def get_split(self, symbol):
-        return self._get_data(symbol, 'split')
+    def get_split(self, symbol, start_date = None, end_date = None):
+        return self._get_data(symbol, 'split', start_date = start_date, end_date = end_date)

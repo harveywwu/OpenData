@@ -3,6 +3,7 @@
 from opendatatools.common import RestAgent, split_date, date_convert, remove_chinese
 import pandas as pd
 import json
+import copy
 import zipfile
 import io
 import re
@@ -91,14 +92,14 @@ class DCEAgent(RestAgent):
     4		西南期货	11,054		6,614		
     '''
     def _parse_trade_file(self, file):
-        filename = file.name.encode('cp437').decode('gbk')
+        filename = file.name
         name_items = filename.split("_")
         symbol = name_items[1]
 
         lines = file.readlines()
         df_list = []
         for i in range(len(lines)):
-            items = lines[i].decode('utf8').split()
+            items = lines[i].split()
             if len(items) == 4 and items[0] == '名次':
                 head = items
                 head[1] = head[2] + head[1]
@@ -179,7 +180,7 @@ class CZCAgent(RestAgent):
 
     def _split_field(self, text, splitter = "|"):
         items = text.split(splitter)
-        result = [str(x).strip().replace('\r\n', '') for x in items]
+        result = [x.encode('utf-8').strip().replace('\r\n', '') for x in items]
         return result
 
     def _parse_trade_file(self, file):
@@ -235,7 +236,7 @@ class CFEAgent(RestAgent):
         url = url % (year, month, day, product)
 
         response = self.do_request(url, None, "GET")
-        root = ElementTree.fromstring(response)
+        root = ElementTree.fromstring(response.encode('utf-8'))
         data_list = []
         for dataElements in root:
             if dataElements.tag != 'data':
@@ -259,7 +260,7 @@ class CFEAgent(RestAgent):
 
         df_list = []
         for type, name in datatype_map.items():
-            df_tmp = df[df['datatypeid'] == type]
+            df_tmp = copy.copy(df[df['datatypeid'] == type])
             df_tmp['rank'] = df_tmp['rank'].apply(lambda x: int(x))
             df_tmp.rename(columns={"instrumentid" : "symbol"}, inplace=True)
             df_tmp.rename(columns={"rank" : "名次"}, inplace=True)

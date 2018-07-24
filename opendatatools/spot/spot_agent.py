@@ -117,12 +117,12 @@ class SpotAgent(RestAgent):
         df = df.rename_axis('indicator_id').reset_index()
         return df
 
-    def get_commodity_spot_indicator_data(self, indicator_id):
+    def get_commodity_spot_indicator_data(self, indicator_id, start_date, end_date):
         url = 'http://www.96369.net/indices/%s' % indicator_id
         captcha, cookies = self.get_captcha()
         data = {
-            'txtStartTime': '2000-01-01',
-            'txtEndTime': '2018-06-21',
+            'txtStartTime': start_date.strftime("%Y-%m-%d"),
+            'txtEndTime': end_date.strftime("%Y-%m-%d"),
             'txtyzcode': captcha
         }
         response = self.do_request(url, param=data, cookies=cookies)

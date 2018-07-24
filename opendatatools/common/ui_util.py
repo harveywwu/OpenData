@@ -30,7 +30,7 @@ class ShowProcess():
         percent = self.i * 100.0 / self.max_steps #计算完成进度，格式为xx.xx%
         process_bar = '[' + '>' * num_arrow + '-' * num_line + ']'\
                       + '%.2f' % percent + '%' + '\r' #带输出的字符串，'\r'表示不换行回到最左边
-        print(process_bar, end="", flush=True) #打印字符到终端
+        print process_bar #打印字符到终端
         if self.i >= self.max_steps:
             self.close()
 

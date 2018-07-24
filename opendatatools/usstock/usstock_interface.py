@@ -10,11 +10,11 @@ def set_proxies(proxies):
 def get_symbols():
     return usstock_agent.get_symbols()
 
-def get_daily(symbol):
-    return usstock_agent.get_daily(symbol)
+def get_daily(symbol, start_date = None, end_date = None):
+    return usstock_agent.get_daily(symbol, start_date, end_date)
 
-def get_dividend(symbol):
-    return usstock_agent.get_dividend(symbol)
+def get_dividend(symbol, start_date = None, end_date = None):
+    return usstock_agent.get_dividend(symbol, start_date, end_date)
 
-def get_split(symbol):
-    return usstock_agent.get_split(symbol)
+def get_split(symbol, start_date = None, end_date = None):
+    return usstock_agent.get_split(symbol, start_date, end_date)

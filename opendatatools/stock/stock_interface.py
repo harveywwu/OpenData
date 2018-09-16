@@ -14,12 +14,12 @@ cninfo_agent = CNInfoAgent()
 eastmoney_agent = EastMoneyAgent()
 
 xq_count_map = {
-    '1m': -240,
-    '5m': -48,
-    '15m': -16,
-    '30m': -8,
-    '60m': -4,
-    '1d' : -1,
+    '1m': -142,
+    '5m': -142,
+    '15m': -142,
+    '30m': -142,
+    '60m': -142,
+    'day' : -142,
 }
 
 bar_span_map = {
@@ -28,6 +28,7 @@ bar_span_map = {
     '15m' : 15,
     '30m' : 30,
     '60m' : 60,
+    'day' : 1440,
 }
 
 
@@ -104,6 +105,8 @@ def get_dividend(symbol):
         code = temp[0]
         if market == 'SH':
             return shex_agent.get_dividend(code)
+        if market == 'SZ':
+            return cninfo_agent.get_dividend(code)
 
 def get_quote(symbols):
     return xq_agent.get_quote(symbols)
@@ -127,7 +130,7 @@ def fill_df(df, period, trade_date, symbol):
     df_new.fillna(0, inplace=True)
     return df_new
 
-# period 1m, 5m, 15m, 30m, 60m
+# period 1m, 5m, 15m, 30m, 60m, day
 def get_kline(symbol, trade_date, period):
     curr_date = datetime.datetime.strptime(trade_date, '%Y-%m-%d')
     next_date = datetime.datetime.strptime(trade_date, '%Y-%m-%d') + datetime.timedelta(days=1)
@@ -135,7 +138,7 @@ def get_kline(symbol, trade_date, period):
 
     timestamp = int ( timestamp * 1000)
     df, msg = xq_agent.get_kline(symbol, timestamp, period, xq_count_map[period])
-    if df is None:
+    if len(df) == 0:
         return df, msg
 
     df = df[(df.time < next_date) & (df.time >= curr_date)]
@@ -194,7 +197,7 @@ def get_daily(symbol, start_date, end_date):
 
         timestamp = curr_datetime.timestamp()
         df, msg = xq_agent.get_kline(symbol, int(timestamp*1000), 'day', 100)
-        if df is not None:
+        if len(df) != 0:
             df_result.append(df[df['time']<next_time])
 
         curr_date = next_date
@@ -264,3 +267,5 @@ def get_hist_money_flow_market():
     return eastmoney_agent.get_hist_money_flow_market()
 def get_allstock_flow():
     return eastmoney_agent.get_allstock_flow()
+
+

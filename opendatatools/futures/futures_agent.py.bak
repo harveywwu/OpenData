@@ -96,9 +96,13 @@ class DCEAgent(RestAgent):
     3		兴证期货	12,835		4,405		
     4		西南期货	11,054		6,614		
     '''
-
+<<<<<<< HEAD
+    def _parse_trade_file(self, file):
+        filename = file.name
+=======
     def _parse_trade_file(self, file, date):
         filename = file.name.encode('cp437').decode('gbk')
+>>>>>>> upstream/master
         name_items = filename.split("_")
         symbol = name_items[1]
 
@@ -111,7 +115,11 @@ class DCEAgent(RestAgent):
             charset = 'gbk'
 
         for i in range(len(lines)):
+<<<<<<< HEAD
+            items = lines[i].split()
+=======
             items = lines[i].decode(charset).split()
+>>>>>>> upstream/master
             if len(items) == 4 and items[0] == '名次':
                 head = items
                 head[1] = head[2] + head[1]
@@ -336,7 +344,11 @@ class CFEAgent(RestAgent):
 
         df_list = []
         for type, name in datatype_map.items():
+<<<<<<< HEAD
+            df_tmp = copy.copy(df[df['datatypeid'] == type])
+=======
             df_tmp = df[df['datatypeid'] == type].copy()
+>>>>>>> upstream/master
             df_tmp['rank'] = df_tmp['rank'].apply(lambda x: int(x))
             df_tmp.rename(columns={"instrumentid" : "symbol"}, inplace=True)
             df_tmp.rename(columns={"rank" : "名次"}, inplace=True)

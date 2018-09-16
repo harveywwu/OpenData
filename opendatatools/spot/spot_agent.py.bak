@@ -122,8 +122,13 @@ class SpotAgent(RestAgent):
         captcha, cookies = self.get_captcha()
         end_date = datetime.now().strftime('%Y-%m-%d')
         data = {
+<<<<<<< HEAD
+            'txtStartTime': start_date.strftime("%Y-%m-%d"),
+            'txtEndTime': end_date.strftime("%Y-%m-%d"),
+=======
             'txtStartTime': '2000-01-01',
             'txtEndTime': end_date,
+>>>>>>> upstream/master
             'txtyzcode': captcha
         }
         response = self.do_request(url, param=data, cookies=cookies)

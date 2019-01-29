@@ -1,3 +1,6 @@
+
+# encoding: utf-8
+
 from opendatatools import index
 
 if __name__ == '__main__':

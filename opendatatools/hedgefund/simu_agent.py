@@ -85,7 +85,7 @@ class SimuAgent(RestAgent):
         return df, '', pageinfo
 
     def load_data(self):
-        page_no = 1
+        page_no = 0
         df_list = []
         df, msg, pageinfo = self._get_fund_list_page(page_no)
         if df is None:
@@ -156,17 +156,17 @@ class SimuAgent(RestAgent):
         muid = self.user_info['userid']
         token, msg = self._get_token(fund_id)
         if token is None:
-            return None, '获取token失败: ' + msg
+            return None, '获取token失败: ' + msg, ''
 
         url = 'https://dc.simuwang.com/fund/getNavList.html'
-        self.add_headers({'Referer': 'https://dc.simuwang.com/product/%s' % fund_id})
+        self.add_headers({'Referer': 'https://dc.simuwang.com/product/%s.html' % fund_id})
         data = {
             'id'   : fund_id,
             'muid' : muid,
             'page' : str(page_no),
             'token': token,
         }
-        response = self.do_request(url, param=data, cookies=self.cookies)
+        response = self.do_request(url, param=data, cookies=self.cookies, encoding="utf8")
         if response is None:
             return None, '获取数据失败', ''
 
@@ -191,15 +191,44 @@ class SimuAgent(RestAgent):
 
         return cryText
 
-    def _decrypt_data(self, str):
-        return self._bit_encrypt(str, 'cd0a8bee4c6b2f8a91ad5538dde2eb34')
+    def _bit_encrypt2(self, str, key):
+        cryText = ''
+        keyLen = len(key)
+        strLen = len(str)
+        for i in range(strLen):
+            k = i % keyLen
+            cryText = cryText + chr(ord(str[i]) ^ ord(key[k]))
+
+        return cryText
+
+    def _decrypt_data(self, str, func, key):
+        # return self._bit_encrypt(str, 'cd0a8bee4c6b2f8a91ad5538dde2eb34')
+        # return self._bit_encrypt(str, '937ab03370497f2b4e8d0599ad25c44c')
+        # return self._bit_encrypt(str, '083975ce19392492bbccff21a52f1ace')
+        return func(str, key)
+
+    def _get_decrypt_info(self, fund_id):
+        url = 'https://dc.simuwang.com/product/%s.html' % fund_id
+        response = self.do_request(url, param=None, cookies=self.cookies, encoding="utf8")
+        if response is None:
+            return None, '获取数据失败', ''
+
+        if "String.fromCharCode(str.charCodeAt(i) - k)" in response:
+            decrypt_func = self._bit_encrypt
+        else:
+            decrypt_func = self._bit_encrypt2
+
+        tag = "return bitEncrypt(str, "
+        pos = response.index(tag) + len(tag) + 1
+        key = response[pos:pos+32]
+        return decrypt_func, key
 
     def get_fund_nav(self, fund_id):
 
         if self.user_info is None:
             return None, '请先登录'
 
-        page_no = 1
+        page_no = 0
         df_list = []
         df, msg, pageinfo = self._get_fund_nav_page(fund_id, page_no)
         if df is None:
@@ -222,6 +251,7 @@ class SimuAgent(RestAgent):
                 else:
                     df_list.append(df)
                     break
+            print(page_no / page_count)
             page_no = page_no + 1
 
         df_nav = pd.concat(df_list)
@@ -229,9 +259,10 @@ class SimuAgent(RestAgent):
         df_nav.rename(columns={'d': 'date', 'n': 'nav', 'cn' : 'accu_nav', 'cnw' : 'accu_nav_w'}, inplace=True)
 
         # 这个网站搞了太多的小坑
-        df_nav['nav']         = df_nav['nav'].apply(lambda x : self._decrypt_data(x))
-        df_nav['accu_nav']   = df_nav['accu_nav'].apply(lambda x : self._decrypt_data(x))
-        df_nav['accu_nav_w'] = df_nav['accu_nav_w'].apply(lambda x : self._decrypt_data(x))
+        func, key = self._get_decrypt_info(fund_id)
+        df_nav['nav']         = df_nav['nav'].apply(lambda x : self._decrypt_data(x, func, key))
+        df_nav['accu_nav']   = df_nav['accu_nav'].apply(lambda x : self._decrypt_data(x, func, key))
+        df_nav['accu_nav_w'] = df_nav['accu_nav_w'].apply(lambda x : self._decrypt_data(x, func, key))
         #df_nav['nav'] = df_nav['nav'] - df_nav.index * 0.01 - 0.01
         #df_nav['accu_nav'] = df_nav['accu_nav'].apply(lambda x: float(x) - 0.01)
         #df_nav['accu_nav_w'] = df_nav['accu_nav_w'].apply(lambda x: float(x) - 0.02)
@@ -257,4 +288,6 @@ class BarclayAgent(RestAgent):
             df = excel.parse('Sheet1').dropna(how='all').copy().reset_index().drop(0)
             df.columns = ['year', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD']
             df = df.set_index('year')
-        return df, ''
+            return df, ''
+
+        return None, "获取数据失败"

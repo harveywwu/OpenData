@@ -9,16 +9,16 @@ import io
 import re
 from xml.etree import ElementTree
 
-SHF_name_map = {"CJ1": "成交量",
-                   "CJ1_CHG": "成交量增减",
-                   "PARTICIPANTABBR1": "成交量期货公司",
-                   "CJ2": "持买仓量",
-                   "CJ2_CHG": "持买仓量增减",
-                   "PARTICIPANTABBR2": "持买仓量期货公司",
-                   "CJ3": "持卖仓量",
-                   "CJ3_CHG": "持卖仓量增减",
-                   "PARTICIPANTABBR3": "持卖仓量期货公司",
-                   "RANK": "名次",
+SHF_name_map = {"CJ1": "volume",
+                   "CJ1_CHG": "volume_chg",
+                   "PARTICIPANTABBR1": "volume_fut_broker",
+                   "CJ2": "long_oi",
+                   "CJ2_CHG": "long_oi_chg",
+                   "PARTICIPANTABBR2": "long_fut_broker",
+                   "CJ3": "short_oi",
+                   "CJ3_CHG": "short_oi_chg",
+                   "PARTICIPANTABBR3": "short_fut_broker",
+                   "RANK": "rank",
                    "INSTRUMENTID": "symbol",
                    }
 
@@ -38,7 +38,7 @@ def _merge_df(df_list):
     return df_result
 
 def _concat_df(df_list):
-    return pd.concat(df_list)
+    return pd.concat(df_list, sort = True)
 
 def _rename_df(df):
     name_map = {
@@ -98,7 +98,7 @@ class DCEAgent(RestAgent):
     '''
 
     def _parse_trade_file(self, file, date):
-        filename = file.name.encode('cp437').decode('gbk')
+        filename = file.name
         name_items = filename.split("_")
         symbol = name_items[1]
 
@@ -111,24 +111,37 @@ class DCEAgent(RestAgent):
             charset = 'gbk'
 
         for i in range(len(lines)):
-            items = lines[i].decode(charset).split()
+            items = lines[i].split()
             if len(items) == 4 and items[0] == '名次':
                 head = items
+                if items[2] == '成交量':
+                    ticker = 'volume'
+                    ticker2 = 'volume'
+                elif items[2] == '持买单量':
+                    ticker = 'long'
+                    ticker2 = 'long_oi'
+                elif items[2] == '持卖单量':
+                    ticker = 'short'
+                    ticker2 = 'short_oi'
+                else:
+                    print "unknown rank = %s" % items[2].decode('utf-8')
+                col_names = ['rank', ticker + '_fut_broker', ticker2, ticker2 + '_chg']
                 head[1] = head[2] + head[1]
                 head[3] = head[2] + head[3]
                 data = []
                 for j in range(20):
                     i = i + 1
                     items = lines[i].decode(charset).split()
-                    if items[0] == '总计':
+                    if (len(items) < 1) or (items[0] == '总计'):
                         break
                     data.append(items)
                 if data == []:
                     data.append(['', '', '', ''])
                 df = pd.DataFrame(data)
-                df.columns = head
-                df.set_index('名次', inplace=True)
-                df_list.append(df)
+                if len(df.columns) == 4:
+                    df.columns = col_names
+                    df.set_index('rank', inplace=True)
+                    df_list.append(df)
 
         df_result = _merge_df(df_list)
         df_result['symbol'] = symbol
@@ -155,7 +168,7 @@ class DCEAgent(RestAgent):
 
         df_result = _concat_df(df_list)
         df_result['date'] = date
-        df_result.reset_index(level=['名次'], inplace=True)
+        df_result.reset_index(level=['rank'], inplace=True)
 
         _rename_df(df_result)
 
